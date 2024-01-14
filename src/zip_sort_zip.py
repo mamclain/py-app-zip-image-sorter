@@ -60,30 +60,17 @@ def unzip_all_zip_files(input_folder: str, unzip_folder: str) -> None:
 
     # loop thru each zip file
     for zip_file in zip_files:
-
-        # build the path to the zip file
-        file_path = os.path.join(input_folder, zip_file)
-
         # Unzip the file into the unzip folder
-        with zipfile.ZipFile(file_path, 'r') as zip_ref:
+        with zipfile.ZipFile(zip_file, 'r') as zip_ref:
             zip_ref.extractall(unzip_folder)
             logger.info(f"Unzipped: {zip_file}")
-            for file in zip_ref.infolist():
-                file_path = os.path.join(unzip_folder, file.filename)
-                file_mod_datetime = file.date_time
-                file_mod_timestamp = time.mktime(file_mod_datetime + (0, 0, -1))
-                os.utime(file_path, (file_mod_timestamp, file_mod_timestamp))
-
-            # # Restore the modified date of the extracted files
-            # for root, _, files in os.walk(unzip_folder):
-            #     for file in files:
-            #         file_path = os.path.join(root, file)
-            #         file_info = zip_ref.getinfo(file_path)
-            #         file_mod_datetime = file_info.date_time
-            #         #  Note -1 is the DST flag to determine if daylight savings time is applicable
-            #         file_mod_timestamp = time.mktime(file_mod_datetime + (0, 0, -1))
-            #         # set access and modified time of the extracted file
-            #         os.utime(file_path, (file_mod_timestamp, file_mod_timestamp))
+            for unzip_file in zip_ref.infolist():
+                unzip_file_path = os.path.join(unzip_folder, unzip_file.filename)
+                unzip_file_modified_datetime = unzip_file.date_time
+                # Note the -1 at the end of the tuple is used to handle daylight savings time (DST) for auto-adjusting
+                unzip_file_modified_timestamp = time.mktime(unzip_file_modified_datetime + (0, 0, -1))
+                # set the access and modified time of the unzipped file to match the zip file
+                os.utime(unzip_file_path, (unzip_file_modified_timestamp, unzip_file_modified_timestamp))
 
 
 def sort_files_by_date(unzip_folder: str, sorted_folder: str) -> None:
