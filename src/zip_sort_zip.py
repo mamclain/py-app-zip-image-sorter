@@ -5,6 +5,7 @@ import os
 import shutil
 import sys
 import tempfile
+import time
 import zipfile
 from datetime import datetime
 from typing import (
@@ -67,13 +68,22 @@ def unzip_all_zip_files(input_folder: str, unzip_folder: str) -> None:
         with zipfile.ZipFile(file_path, 'r') as zip_ref:
             zip_ref.extractall(unzip_folder)
             logger.info(f"Unzipped: {zip_file}")
+            for file in zip_ref.infolist():
+                file_path = os.path.join(unzip_folder, file.filename)
+                file_mod_datetime = file.date_time
+                file_mod_timestamp = time.mktime(file_mod_datetime + (0, 0, -1))
+                os.utime(file_path, (file_mod_timestamp, file_mod_timestamp))
 
-            # Restore the modified date of the extracted files
-            for root, _, files in os.walk(unzip_folder):
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    zip_info = zip_ref.getinfo(file_path)  # Get the original ZIP info
-                    os.utime(file_path, (zip_info.date_time, zip_info.date_time))
+            # # Restore the modified date of the extracted files
+            # for root, _, files in os.walk(unzip_folder):
+            #     for file in files:
+            #         file_path = os.path.join(root, file)
+            #         file_info = zip_ref.getinfo(file_path)
+            #         file_mod_datetime = file_info.date_time
+            #         #  Note -1 is the DST flag to determine if daylight savings time is applicable
+            #         file_mod_timestamp = time.mktime(file_mod_datetime + (0, 0, -1))
+            #         # set access and modified time of the extracted file
+            #         os.utime(file_path, (file_mod_timestamp, file_mod_timestamp))
 
 
 def sort_files_by_date(unzip_folder: str, sorted_folder: str) -> None:
@@ -199,9 +209,8 @@ if __name__ == "__main__":
     main(
         override_args=[
             "-i", r"C:\Users\Mike\Downloads\zips",
-            "-o", r"C:\Users\Mike\Downloads\zips_sorted",
+            "-o", r"C:\Users\Mike\Downloads\output",
+            "-u", r"C:\Users\Mike\Downloads\unzip",
             "-s", r"C:\Users\Mike\Downloads\sorted",
-            "-u", r"C:\Users\Mike\Downloads\superchicken"
-
         ]
     )
