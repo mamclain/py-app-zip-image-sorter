@@ -29,8 +29,10 @@ def make_folder(folder_path: str) -> None:
     :return: None
     """
     if not os.path.exists(folder_path):
-        logger.info(f"Creating folder: {folder_path}")
+        logger.debug(f"Creating folder: {folder_path}")
         os.makedirs(folder_path)
+    else:
+        logger.debug(f"Folder already exists: {folder_path} (skipping)")
 
 
 def get_temp_folder(folder_path: Optional[str] = None) -> tempfile.TemporaryDirectory:
@@ -41,9 +43,9 @@ def get_temp_folder(folder_path: Optional[str] = None) -> tempfile.TemporaryDire
 
     if folder_path is None:
         temp_dir = tempfile.TemporaryDirectory()
-        logger.info(f"Created Temp folder: {temp_dir.name}")
+        logger.debug(f"Create new Temporary folder at: {temp_dir.name}")
     else:
-        logger.info(f"Use user provided temp folder: {folder_path}")
+        logger.debug(f"User provided Temporary storage Folder at: {folder_path}")
         # make sure the temp folder exists
         make_folder(folder_path)
         temp_dir = tempfile.TemporaryDirectory(dir=folder_path)
@@ -70,6 +72,7 @@ def unzip_all_zip_files(input_folder: str, unzip_folder: str) -> None:
             zip_ref.extractall(unzip_folder)
             logger.info(f"Unzipped: {zip_file}")
             for unzip_file in zip_ref.infolist():
+                logger.debug(f"Setting modified time for: {unzip_file.filename}")
                 unzip_file_path = os.path.join(unzip_folder, unzip_file.filename)
                 unzip_file_modified_datetime = unzip_file.date_time
                 # Note the -1 at the end of the tuple is used to handle daylight savings time (DST) for auto-adjusting
@@ -113,12 +116,14 @@ def sort_files_by_date(unzip_folder: str, sorted_folder: str) -> None:
 def zip_sorted_folders(
         sorted_folder: str,
         output_folder: str,
-        prefix: str = "archive_"
+        date_format: str = "%Y-%m-%d",
+        archive_name_format: str = "archive_{date_format}_[{file_count}].zip"
 ) -> None:
     """ Zip all the sub folders in the sorted folder
     :param sorted_folder: The folder containing the sorted sub folders
     :param output_folder: The folder to output the zip files to
-    :param prefix: The prefix for the zip file
+    :param date_format: The date format to use for the zip file name
+    :param archive_name_format: The format for the zip file name (as a format string)
     :return: None
     """
 
@@ -128,11 +133,11 @@ def zip_sorted_folders(
     ]
 
     for sorted_folder in sorted_folders:
-
+        logger.info(f"Zipping sorted files in {sorted_folder} to {output_folder}")
         sorted_files = glob.glob(f"{sorted_folder}/*.*")
         sorted_file_count = len(sorted_files)
         if sorted_file_count == 0:
-            logger.info(f"Skipping sub folder {sorted_folder} because it is empty")
+            logger.info(f"Skipping sort folder {sorted_folder} because it is empty")
             continue
 
         # Get the date from the sub folder name
@@ -140,10 +145,12 @@ def zip_sorted_folders(
         # decode the date from the sub folder name
         folder_decoded_date = datetime.strptime(sorted_folder_name, "%m_%d_%Y")
         # encode the date to a string in the format we want for the zip file name
-        date_folder = folder_decoded_date.strftime("%Y-%m-%d")
+        date_folder_format = folder_decoded_date.strftime(date_format)
 
-        # this is custom to the classic midjourney archive format
-        archive_name = f"{prefix}{date_folder}_[{sorted_file_count}].zip"
+        archive_name = archive_name_format.format(
+            date_format=date_folder_format,
+            file_count=sorted_file_count
+        )
 
         zip_archive_path = os.path.join(output_folder, archive_name)
         # Create a zip file for each sub folder
@@ -194,7 +201,7 @@ def main(override_args: Optional[List[str]] = None) -> None:
         '--prefix',
         type=str,
         help="zip file prefix",
-        default="archive_"
+        default="archive_{date_format}_[{file_count}].zip"
     )
 
     # Parse the command-line arguments
@@ -217,15 +224,10 @@ def main(override_args: Optional[List[str]] = None) -> None:
     # unzip all the zip files into the unzip folder
     logger.info("Unzipping all zip files")
     unzip_all_zip_files(args.input, unzip_dir.name)
-    logger.info("Sorting files by date")
+    logger.info("Sorting unzipped files by date")
     sort_files_by_date(unzip_dir.name, sort_dir.name)
-    logger.info("Zipping sorted files")
+    logger.info("Zipping sorted folders to archive files")
     zip_sorted_folders(sort_dir.name, args.output, args.prefix)
-
-    x = 1
-    # if args.temp is not None:
-    #     logger.info(f"Cleanup User Provided temp folder: {args.temp}")
-    #     os.rmdir(args.temp)
 
 
 if __name__ == "__main__":
@@ -235,6 +237,6 @@ if __name__ == "__main__":
             "-o", r"C:\Users\Mike\Downloads\output",
             "-u", r"C:\Users\Mike\Downloads\unzip",
             "-s", r"C:\Users\Mike\Downloads\sorted",
-            "-p", "midjourney_archive_"
+            "-p", "midjourney_archive_{date_format}_[{file_count}].zip"
         ]
     )
