@@ -20,7 +20,7 @@ from typing import (
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
-logger.setLevel(level=logging.DEBUG)
+logger.setLevel(level=logging.INFO)
 
 
 def make_folder(folder_path: str) -> None:
@@ -116,14 +116,14 @@ def sort_files_by_date(unzip_folder: str, sorted_folder: str) -> None:
 def zip_sorted_folders(
         sorted_folder: str,
         output_folder: str,
-        date_format: str = "%Y-%m-%d",
-        archive_name_format: str = "archive_{date_format}_[{file_count}].zip"
+        archive_name_format: str = "archive_{date_format}_[{file_count}].zip",
+        date_format: str = "%Y-%m-%d"
 ) -> None:
     """ Zip all the sub folders in the sorted folder
     :param sorted_folder: The folder containing the sorted sub folders
     :param output_folder: The folder to output the zip files to
-    :param date_format: The date format to use for the zip file name
     :param archive_name_format: The format for the zip file name (as a format string)
+    :param date_format: The date format to use for the zip file name
     :return: None
     """
 
@@ -197,11 +197,24 @@ def main(override_args: Optional[List[str]] = None) -> None:
         default=None
     )
     parser.add_argument(
-        '-p',
-        '--prefix',
+        '-f',
+        '--format',
         type=str,
-        help="zip file prefix",
+        help="zip file archive name format",
         default="archive_{date_format}_[{file_count}].zip"
+    )
+    parser.add_argument(
+        '-d',
+        '--date',
+        type=str,
+        help="the date format to use for the zip file name",
+        default="%Y-%m-%d"
+    )
+    parser.add_argument(
+        '--log',
+        default='INFO',
+        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+        help='Set the level of log'
     )
 
     # Parse the command-line arguments
@@ -210,11 +223,16 @@ def main(override_args: Optional[List[str]] = None) -> None:
     else:
         args = parser.parse_args(override_args)
 
+    log_level = getattr(logging, args.log.upper(), None)
+    if not isinstance(log_level, int):
+        logger.warning(f'Invalid log level: {args.log} will default to INFO')
+        log_level = logging.INFO
+    logger.setLevel(level=log_level)
+
     # Make sure the input folder exists
     if not os.path.exists(args.input):
         logger.error(f"Input folder does not exist: {args.input}")
         sys.exit(1)
-
     # Make sure the output folder exists
     make_folder(args.output)
 
@@ -227,7 +245,7 @@ def main(override_args: Optional[List[str]] = None) -> None:
     logger.info("Sorting unzipped files by date")
     sort_files_by_date(unzip_dir.name, sort_dir.name)
     logger.info("Zipping sorted folders to archive files")
-    zip_sorted_folders(sort_dir.name, args.output, args.prefix)
+    zip_sorted_folders(sort_dir.name, args.output, args.format, args.date)
 
 
 if __name__ == "__main__":
@@ -237,6 +255,7 @@ if __name__ == "__main__":
             "-o", r"C:\Users\Mike\Downloads\output",
             "-u", r"C:\Users\Mike\Downloads\unzip",
             "-s", r"C:\Users\Mike\Downloads\sorted",
-            "-p", "midjourney_archive_{date_format}_[{file_count}].zip"
+            "-f", "midjourney_archive_{date_format}_[{file_count}].zip",
+            "--log", "DEBUG"
         ]
     )
