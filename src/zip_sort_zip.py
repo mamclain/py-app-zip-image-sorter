@@ -229,7 +229,7 @@ def main(override_args: Optional[List[str]] = None) -> None:
     if args.input is None:
         logger.error("Input folder is required")
         sys.exit(1)
-        
+
     if args.output is None:
         logger.error("Output folder is required")
         sys.exit(1)
@@ -260,13 +260,4 @@ def main(override_args: Optional[List[str]] = None) -> None:
 
 
 if __name__ == "__main__":
-    main(
-        # override_args=[
-        #     "-i", r"C:\Users\Mike\Downloads\zips",
-        #     "-o", r"C:\Users\Mike\Downloads\output",
-        #     "-u", r"C:\Users\Mike\Downloads\unzip",
-        #     "-s", r"C:\Users\Mike\Downloads\sorted",
-        #     "-f", "midjourney_archive_{date_format}_[{file_count}].zip",
-        #     "--log", "DEBUG"
-        # ]
-    )
+    main()
