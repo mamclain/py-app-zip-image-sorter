@@ -167,7 +167,10 @@ def main(override_args: Optional[List[str]] = None) -> None:
     :return: None
     """
     # Create an ArgumentParser object
-    parser = argparse.ArgumentParser(description="A command-line argument example")
+    parser = argparse.ArgumentParser(
+        description="a script that will take a folder of zip files, unzip them, sort the files by date, "
+                    "and then zip them back up into separate zip files by date for archiving by date."
+    )
 
     # Define command-line arguments
     parser.add_argument(
@@ -223,6 +226,14 @@ def main(override_args: Optional[List[str]] = None) -> None:
     else:
         args = parser.parse_args(override_args)
 
+    if args.input is None:
+        logger.error("Input folder is required")
+        sys.exit(1)
+        
+    if args.output is None:
+        logger.error("Output folder is required")
+        sys.exit(1)
+
     log_level = getattr(logging, args.log.upper(), None)
     if not isinstance(log_level, int):
         logger.warning(f'Invalid log level: {args.log} will default to INFO')
@@ -250,12 +261,12 @@ def main(override_args: Optional[List[str]] = None) -> None:
 
 if __name__ == "__main__":
     main(
-        override_args=[
-            "-i", r"C:\Users\Mike\Downloads\zips",
-            "-o", r"C:\Users\Mike\Downloads\output",
-            "-u", r"C:\Users\Mike\Downloads\unzip",
-            "-s", r"C:\Users\Mike\Downloads\sorted",
-            "-f", "midjourney_archive_{date_format}_[{file_count}].zip",
-            "--log", "DEBUG"
-        ]
+        # override_args=[
+        #     "-i", r"C:\Users\Mike\Downloads\zips",
+        #     "-o", r"C:\Users\Mike\Downloads\output",
+        #     "-u", r"C:\Users\Mike\Downloads\unzip",
+        #     "-s", r"C:\Users\Mike\Downloads\sorted",
+        #     "-f", "midjourney_archive_{date_format}_[{file_count}].zip",
+        #     "--log", "DEBUG"
+        # ]
     )
